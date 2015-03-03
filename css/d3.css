@@ -1,0 +1,61 @@
+.reviewContext{
+		float:right;
+		display:block;
+		color:#FFFFFF;
+		height:400px;
+		background-color:#2d4f2c;
+		white-space:normal;
+		overflow:scroll;
+		width:350px;
+		word-wrap:break-word;
+		word-break:break-all;
+	}
+	#maincanvas{
+		height:370px;
+		width:800px;
+		float:left;
+		
+		margin-left:10px;
+		
+	}
+	
+	g{
+		overflow:hidden;
+	}
+	rect.bar{
+		fill: #9abfe4 ;
+	}
+	
+	.axis path,
+    .axis line{
+        fill: none;
+        stroke: grey;
+        stroke-width: 1;
+        shape-rendering: crispEdges;
+    }
+	
+	.xbrush .extent {
+	stroke: #fff;
+	fill-opacity: .125;
+	shape-rendering: crispEdges;
+}
+
+	
+	.container{
+		
+		word-wrap:break-word;
+		margin:30px;
+		color:#FFFFFF;
+	}
+	#wordcloud{
+	
+	height:300px;
+	width:700px;
+	margin-left:20px;
+	
+	position:relative;
+	}
+	
+	p{
+	position:relative;
+	}

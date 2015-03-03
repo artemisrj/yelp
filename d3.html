@@ -1,0 +1,91 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<title></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	
+	<link rel="stylesheet" rev="stylesheet" href="css/jqcloud.css" type="text/css" />
+	<meta http-equiv="Content-Language" content="zh-CN" />
+	<meta name="Keywords" content="" />
+	<meta name="Description" content="" />
+	<script src="script/d3.js" charset="utf-8"></script>
+	<script type="text/javascript" src="script/jquery-1.11.2.js"></script>
+	<script type="text/javascript" src="script/jqcloud-1.0.4.js"></script>
+	
+	<script type="text/javascript" src="script/dd.js">
+	<!--
+	
+	//-->
+	</script>
+	<link rel="stylesheet" rev="stylesheet" href="css/d3.css" type="text/css" />
+</head>
+<body>
+<div id="maincanvas" > </div>
+<div class="reviewContext">评论内容  <div class="container"></div></div>
+
+<script type="text/javascript">
+	var dataset=[];
+	var oldData=[];
+	var xMarks=[];
+	var dataLength=0; 
+	var w=700;
+	var h=350;
+	var padding=40;
+	var aveNum=1;
+	var arrayYelpData;
+	var maxVariance;
+	var yelpdata ={ 
+    stars : [], 
+    date: [], 
+    text: [] 
+    } 
+	var ybottom=300;
+	var fullyelpdata;
+	var maxcount=0; //最大数
+	
+	var dataroot="y8VQQO_WkYNjSLcq6hyjPA.json"; 
+	
+	var xrange=[30,w];
+	var xscale;
+	var flow;
+	var area;
+	var brush;
+	var xflowAxis;
+	var strline;
+	var cpath;
+	var carea;
+	//用一个变量存储标题和副标题的高度，如果没有标题什么的，就为0
+	var head_height=padding;
+	var title="折线图";
+	var subTitle=aveNum;
+	
+	//用一个变量计算底部的高度，如果不是多系列，就为0
+	var foot_height=padding;
+	
+	var svg;
+	var path;
+	
+	//模拟数据
+	//getData();	
+	
+	//定义画布
+	
+	 //drawChart();
+	 wordcloud();
+	 
+	$(document).ready(function(){
+		
+		
+	});
+	 
+
+</script>
+<p align="left">
+<button onclick="javascript:getData('month');">按月曲线</button>
+<button id="originalData" onclick="javascript:getData('week');">按星期曲线</button>
+<div id="wordcloud" > </div>
+<button id="ajax" onclick="">ajax </button>
+
+</p>
+</body>
+</html>
