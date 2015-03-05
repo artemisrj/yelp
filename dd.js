@@ -1,14 +1,29 @@
 function reviewinfo(){
-	
 	$.getJSON(dataroot, function(data){ //dataroot 所指的文件里面json格式不对可能造成里面的格式不输出
 		//alert("reviewinfo");
 		arrayYelpData=new Array([data.length]);
+		var parseDate=d3.time.format("%Y-%m-%d").parse;
 		for(var i=0;i<data.length;i++){
+			data[i].date=parseDate(data[i].date);
 			arrayYelpData[i]=data[i];
 		}
-	crossdata=crossfilter(data);
-	console.log(data[0]);
+		//console.log(data[0]);
+		crossdata=crossfilter(data);
+		datedim=crossdata.dimension(function(d){ return d.date});
+		
+		//load the nouns
+		$.get("cgi-bin/freworddb.py",function(data,status){
+				var jsons=$.parseJSON(data);				
+				var array=new Array();
+				for(var i=0;i<jsons.length;i++){
+					var obj={};
+					
+					arrayYelpData[i].nouns=jsons[i][2].split(",");	
+				}
+				
+			});
 	});
+	
 }
 
 	//重新作图
@@ -53,13 +68,11 @@ function drawChart()
 	for(var i=0;i<arrayYelpData.length;i++){
 		var ss=arrayYelpData[i].date;
 		var vyear=ss.substr(0,4);
-		var vmonth=parseInt(ss.substr(5,2));
-			
+		var vmonth=parseInt(ss.substr(5,2));	
 			//console.log(typeof(vmonth)+typeof(month));
 		if(year==vyear&&parseInt(month)==vmonth){
 				//右边显示评论
 			var reviewtext=d3.select(".container").text(this.text+arrayYelpData[i].text);
-				
 		}
 	}
 })
@@ -93,6 +106,15 @@ function drawChart()
 		
 	}
 	
+
+function print_filter(filter){
+	var f=eval(filter);
+	if (typeof(f.length) != "undefined") {}else{}
+	if (typeof(f.top) != "undefined") {f=f.top(Infinity);}else{}
+	if (typeof(f.dimension) != "undefined") {f=f.dimension(function(d) { return "";}).top(Infinity);}else{}
+	console.log(filter+"("+f.length+") = "+JSON.stringify(f).replace("[","[\n\t").replace(/}\,/g,"},\n\t").replace("]","\n]"));
+} 
+
 function getData(type)
 {	
 	if(arrayYelpData==null){
@@ -109,7 +131,7 @@ function getData(type)
 			alert("week");
 			
 		}
-		console.log(dataset)
+		//console.log(dataset)
 		drawTimeline();
 		drawdense();
 		fullyelpdata=data;
@@ -201,7 +223,7 @@ function averageData(data){ 	//用平均来平滑点
 	
 	calVariance(allset);
 
-	console.log(dataset);
+	//console.log(dataset);
 	
 }
 
@@ -294,7 +316,7 @@ function averageWeek(data){
 	
 		var index=allset.length;
 		allset[index]=new Array();
-		console.log(vset);
+		//console.log(vset);
 		for(var ii=0;ii<vset.length;ii++)
 		{
 			allset[index].push(vset[ii]);
@@ -308,42 +330,58 @@ function averageWeek(data){
 	}
 	
 	calVariance(allset);
-	console.log(dataset);
+	//console.log(dataset);
 	
 }
-	
+		
 function wordcloud(){//输入要做词云的范围，输出词云的效果
 	 $(function() {
         // When DOM is ready, select the container element and call the jQCloud method, passing the array of words as the first argument.
 		$("#ajax").click(function(){
-			$.get("cgi-bin/freworddb.py",function(data,status){
-				var jsons=$.parseJSON(data);
-				
-				var array=new Array();
-				
-				for(var i=0;i<jsons.length;i++){
-					var obj={};
-					obj.text=jsons[i][0];
-					obj.weight=jsons[i][1];
-					array.push(obj);
-				}
-				//console.log(array);
-				$("#wordcloud").jQCloud(array);
-				//console.log("data:" + "\n status: " + status)
-				//alert("数据：" + data + "\n状态：" + status);
+			var array=new Array();
+			var wordfre=new Array();
+			brushdata.forEach(function(value){
+				value.nouns.forEach(function(key){
+					if(wordfre[key]==undefined){
+						wordfre[key]=1;				
+					}else{
+						wordfre[key]=wordfre[key]+1;
+					}
+				})
 			});
+			var wordarray=[];		
+			for(var key in wordfre){
+				var obj={};
+				obj.text=key;
+				obj.weight=wordfre[key];
+				wordarray.push(obj);
+			}
+			wordarray.sort(function(a,b){
+				return a.weight<b.weight;
+			});
+			$("#wordcloud").empty();
+			$("#wordcloud").jQCloud(wordarray.slice(0,100));
 		});
 		
      });
-	 
 }
+
 function brushed(){
-	//console.log(xscale.range);
+	
 	xscale.domain(brush.extent())
 		.range([0,w]);
+	var nn=datedim.filter(brush.extent());
+	var timebegin=brush.extent()[0];
+	var timeend=brush.extent()[1];
+	brushdata=arrayYelpData.filter(function(x){ if(x.date>=timebegin&&x.date<=timeend){return x}});
 	flow.attr("d",area(dataset));
 	path.attr("d", strline(dataset));
 	cpath.attr("d",carea(dataset));
+}
+
+function dealreview(filterdata){
+	console.log(filterdata);
+	
 }
 
 function drawTimeline(){
@@ -353,12 +391,12 @@ function drawTimeline(){
 	var timelineHeight=80;
 	var bottontimeline=timelineHeight-timelinebotton;
 	
-	var xscale=d3.time.scale()
+	var txscale=d3.time.scale()
 	  .domain([new Date(dataset[0].date),new Date(dataset[dataset.length-1].date)])
-	  .range([0,w]);
+	  .range([30,w]);
 	  
 	var txaxis=d3.svg.axis()
-			   .scale(xscale)
+			   .scale(txscale)
 			   .orient("bottom")
 			   .ticks(16);
 	  
@@ -374,7 +412,7 @@ function drawTimeline(){
 	var timearea=d3.svg.area()
 			.interpolate(mode)
 			.x(function(d){
-				return xscale(new Date(d.date))
+				return txscale(new Date(d.date))
 			})
 			.y0(function(d){
 				return bottontimeline;
@@ -388,9 +426,9 @@ function drawTimeline(){
 			.attr("width",w)
 			.attr("height",timelineHeight);
 	
-	console.log("brush");
+	//console.log("brush");
 	brush=d3.svg.brush()
-			.x(xscale)
+			.x(txscale)
 			.extent([new Date(dataset[0].date),new Date(dataset[dataset.length-1].date)])
 			.on("brush",brushed);
 	
@@ -422,11 +460,21 @@ function drawdense(){
 	var yrange=[ybottom,10];
 	//console.log(dataset);
 	svg=d3.select("#maincanvas")
-	.append("svg")
-	.attr("width",w)
-	.attr("height",h)
-	.append("g")
-	.attr("transform","translate(30,0)");
+		.append("svg")
+		.attr("width",w)
+		.attr("height",h)
+		
+	svg.append("defs")
+		.append("clipPath")
+		.attr("id","clip")
+		.append("rect")
+		.attr("x",30)
+		.attr("width",w)
+		.attr("height",ybottom);
+		
+		
+	svg=svg.append("g")
+		.attr("transform","translate(0,0)");
 	
 	xscale=d3.time.scale()
 	  .domain([new Date(dataset[0].date),new Date(dataset[dataset.length-1].date)])
@@ -449,10 +497,6 @@ function drawdense(){
 				.scale(yscale)
 				.orient("left")
 				.ticks(5);
-			   
-	
-	   
-	
 	
 	mode="basis";
 	
@@ -479,21 +523,23 @@ function drawdense(){
 			});
 			
 	flow=svg.append("g")
-		.attr("transform","translate(30,0)")
+		.attr("transform","translate(0,0)")
 		.append("path")
 		.attr("d",area(dataset))
 		.style("fill",'#99b77b')
+		.attr("clip-path","url(#clip)")
 		.style("stroke-width",0.7);
 		
 	path=svg.append("g")
-		.attr("transform","translate(30,0)")
+		.attr("transform","translate(0,0)")
 		.append("path")
         .attr("d", strline(dataset))
 		.style("fill","#99b77b")
 		.style("fill","none")
 		.style("stroke-width",1)
 		.style("stroke","#2d4f2c")
-		.style("stroke-opacity",0.9);
+		.style("stroke-opacity",0.9)
+		.attr("clip-path","url(#clip)");
 		
 		
 	xflowAxis=svg.append("g")
@@ -532,8 +578,9 @@ function drawcount(xscale){
 	});
 	
 	cpath=svg.append("g")
-		.attr("transform","translate(30,0)")
+		.attr("transform","translate(0,0)")
 		.append("path")
+		.attr("clip-path","url(#clip)")
 		.attr("d",carea(dataset))
 		.style("fill","#9abfe4")
 		.style("stroke-width",0.7);
