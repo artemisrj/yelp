@@ -12,16 +12,42 @@
 	<script type="text/javascript" src="script/jquery-1.11.2.js"></script>
 	<script type="text/javascript" src="script/jqcloud-1.0.4.js"></script>
 	
-	<script type="text/javascript" src="script/dd.js">
-	<!--
-	
-	//-->
-	</script>
+	<script type="text/javascript" src="script/dd.js"></script>
+	<script type="text/javascript" src="script/crossfilter.js"></script>
 	<link rel="stylesheet" rev="stylesheet" href="css/d3.css" type="text/css" />
 </head>
 <body>
-<div id="maincanvas" > </div>
-<div class="reviewContext">评论内容  <div class="container"></div></div>
+<div id="titles">
+business_id: 
+	<select id="busid">
+		<option>y8VQQO_WkYNjSLcq6hyjPA</option>
+		<option>WnY4HPJIYNXOPQH2mFzl2Q</option>
+	</select>
+<button onclick="javascript:getData('month');">按月曲线</button>
+<button id="originalData" onclick="javascript:getData('week');">按星期曲线</button>
+
+<button id="ajax" onclick="">ajax </button> 
+<b id="dateRange"> </b>
+</div>
+
+<div class="row">
+
+
+<div class="wrapper2"><div class="chart-title">titile</div>  <div id="maincanvas" ></div></div>
+
+<div class="wrapper1">
+
+
+<div class="chart-title">reviews</div>
+<div class="reviewContext"></div>
+</div>
+
+</div>
+<div class="row">
+<div class="wrapper3">
+<div class="chart-title">wordcloud</div> <div id="wordcloud" > </div>
+</div>
+
 
 <script type="text/javascript">
 	var dataset=[];
@@ -62,29 +88,43 @@
 	//用一个变量计算底部的高度，如果不是多系列，就为0
 	var foot_height=padding;
 	
+	
 	var svg;
 	var path;
 	
+	//cross处理的数据
+	var crossdata;
+	var datedim;
 	//模拟数据
 	//getData();	
 	
 	//定义画布
 	
+	var brushdata;
+	var denseXscale;
+	
+	var settime;
+	
+	var dbrush;
+	var tempdbrush=[2];
+	
+	var sbrush;
 	 //drawChart();
-	 wordcloud();
+	 //wordcloud();
+	var tagtime=0;
+	
+	var wordsSentimentArray=[];
 	 
 	$(document).ready(function(){
 		
-		
 	});
+	
+	$("#busid").change(function(){
+	console.log($("#busid option:selected").text());
+	})
 	 
 
 </script>
-<p align="left">
-<button onclick="javascript:getData('month');">按月曲线</button>
-<button id="originalData" onclick="javascript:getData('week');">按星期曲线</button>
-<div id="wordcloud" > </div>
-<button id="ajax" onclick="">ajax </button>
 
 </p>
 </body>

@@ -1,12 +1,16 @@
 ﻿'save the main info to db(frequency word and the review about it)'
+ # -*- coding: UTF-8 -*-  
 import json
 import sqlite3
-from pattern.en import parsetree,singularize
+from pattern.en import parsetree,singularize,sentiment,positive,mood,modality
 import pdb
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
-review_bui="y8VQQO_WkYNjSLcq6hyjPA"
+review_bui="wZwZcte4lcbu51NOzCjWbQ"
 path="F:/data/yelp/"+review_bui+"_l.json"
-cx=sqlite3.connect("D:/database2.db")
+cx=sqlite3.connect("D:/database3.db")
 
 rc=0  
 cnum=4
@@ -46,51 +50,101 @@ def c2nn(x): #函数输入chunk 输出chunk中的名词或者名词词组
 class AReview(object):
     pass
     
+class textcontent(object):
+    pass
+    
+def judge(str,loc):
+    while True:
+        if str[loc]=='<':
+            return False
+        if str[loc]=='>':
+            return True
+        loc=loc-1
+        #print loc
+        if loc==-1:
+            return True
+            
 cur=cx.cursor()  
-cur.execute('create table reviewsnouns(date Date,userid varchar(30),words text)')  
+cur.execute('create table wZwZcte4lcbu51NOzCjWbQ(date Date,userid varchar(30),words text,stars int,texts text)') 
 for line in open(path):
     rec=json.loads(line)
-    aa=rec['text'].lower()
+    aa=rec['text']
     v=AReview()
-    v.date=rec['date'];
+    v.date=rec['date']
     v.user=rec['user_id']
     v.nouns=''
-    ss=aa.split(".")
-    rc=rc+1 #第几个评论 评论从1开始计数
-    sc=0
-
-    for item in ss:
-        sc=sc+1
-        s=parsetree(item,relations=True,lemmata=True)
-        #print item
-        for sentence in s:
-            joinlist=[]
-            for chunk in sentence.chunks:
-                if chunk.type=="NP":
-                    tword=c2nn(chunk)
-                    #print tword
-                    joinlist.extend(tword)
-                    print tword
-                    for ww in tword:
-                        if v.nouns=='':
-                            v.nouns=ww
-                        else:
-                            v.nouns=v.nouns+','+ww
-                    for nn in tword:
-                        if nn in dicWord:
-                            dicWord[nn]=dicWord[nn]+1
-                        else :
-                            dicWord[nn]=1
-    print v.date
-    print v.nouns
-    cur.execute('insert into reviewsnouns values("'+v.date+'","'+v.user+'","'+v.nouns+'")')
+    v.stars=rec['stars']
+    v.texts=''
+    aa=aa.replace('\n','\n <br> \n')
     
+   # print aa
+   # pdb.set_trace()
+    s=parsetree(aa,relations=True,lemmata=True)
+    #print "s" 
+    for sentence in s:
+        c=''
+        c=str(sentence.string)
+        print "sentence"
+        joinlist=[]
+        for chunk in sentence.chunks:
+            
+            if chunk.type=="NP":
+                tword=c2nn(chunk)
+                #print tword
+                joinlist.extend(tword)
+                #print tword
+                for ww in tword:
+                    ww=ww.lower()
+                    if ww=='<br>':
+                        continue
+                    if v.nouns=='':
+                        v.nouns=ww
+                    else:
+                        v.nouns=v.nouns+','+ww            
+                    index=c.lower().find(ww)
+                    
+                    if index>=0 and judge(c,index) :
+                        c=c[:index+len(ww)]+'</span>'+c[index+len(ww):]
+                        c=c[:index]+'<span class=*'+ww+'* >'+c[index:]
 
+                for nn in tword:
+                    if nn in dicWord:
+                        dicWord[nn]=dicWord[nn]+1
+                    else :
+                        dicWord[nn]=1
+            else:
+                for w in chunk:
+                    if w.type=="JJ":
+                       index=c.lower().find(w.string)
+                       
+                       print index
+                      
+                       print w
+                       if index>0 and judge(c,index):
+                            c=c[:index+len(w.string)]+'</span>'+c[index+len(w.string):]
+                            c=c[:index]+'<span class=*JJ* >'+c[index:]
+                       
+                       #print c
+
+        c='<span class=*sentence* sentiment=*'+str(sentiment(sentence))+'* positive=*'+str(positive(sentence))+'* mood=*'+str(mood(sentence))+'* modality=*'+str(modality(sentence))+'*>'+c+"</span>"
+        c=c.replace('"','*')
+        v.texts=v.texts+c
+        #print c
+        #pdb.set_trace()
+        #print v.texts            
+        
+    print v.date
+    #print v.nouns
+    #print v.texts
+    print v.stars
+    
+    cur.execute('insert into wZwZcte4lcbu51NOzCjWbQ values("'+v.date+'","'+v.user+'","'+v.nouns+'","'+str(v.stars)+'" ,"'+v.texts+'")')
 #cur.execute('create table wordfre(word varchar(20) UNIQUE,uid integer)')
 cur.close()    
 cx.commit()
 cx.close()   
 pdb.set_trace()
+
 thefinalwords=sorted(dicWord.iteritems(),key=lambda d:d[1],reverse=True)[:50]
 for each in thefinalwords:
     #print each[0]
@@ -110,7 +164,7 @@ for fword in thefinalwords:
         if not aa.find(fword[0])==-1:
             indexes.append(id)
         id+=1
-    #print indexes
+    
     #print 'insert into review_link("'+fword[0]+'","'+str(indexes)+'")'
     cur.execute('insert into review_link values("'+fword[0]+'","'+str(indexes)+'")')
     cur.execute
