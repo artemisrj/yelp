@@ -108,7 +108,6 @@ function drawChart()
 		
 	}
 	
-
 function print_filter(filter){
 	var f=eval(filter);
 	if (typeof(f.length) != "undefined") {}else{}
@@ -254,9 +253,14 @@ function averageData(arrayYelpData){ 	//用平均来平滑点
 	
 }
 
+//计算方差
 function calVariance(allset){
 	maxVariance=0;
-		for(var i=0;i<allset.length;i++){
+		for(var i=0;i<dataset.length;i++){
+			if(dataset[i].aveScore==-1){
+				dataset[i].variance=0;
+				continue;
+			}
 			var temparray=allset[i];
 			var sum=0;
 			for(var j=0;j<temparray.length;j++){
@@ -329,12 +333,20 @@ function averageWeek(arrayYelpData){
 			vset.push(parseInt(arrayYelpData[i].stars));
 			cc=1;
 			
+			jt.setTime(jt.valueOf()+604800000);
 			//如果一个礼拜之内没有数据，那么推迟最后一天的界限
 			while(dt.valueOf()>jt.valueOf()){
+				var singledata={};
+				singledata.count=0;
+				singledata.aveScore=-1;
+				var tempdate=new Date();
+				tempdate.setTime(jt.valueOf()-302400000);
+				singledata.date=tempdate.getFullYear()+"-"+(tempdate.getMonth()+1)+"-"+(tempdate.getDate());
+				dataset.push(singledata);
 				jt.setTime(jt.valueOf()+604800000);
+				var index=allset.length;
+				allset[index]=new Array();
 			}
-			
-			
 		}else{
 			cc++;
 			csum=csum+parseInt(arrayYelpData[i].stars);
@@ -370,38 +382,246 @@ function averageWeek(arrayYelpData){
 }
 		
 function wordcloud(brushdata){//输入要做词云的范围，输出词云的效果
-	 $(function() {
-        // When DOM is ready, select the container element and call the jQCloud method, passing the array of words as the first argument.
-		//$("#ajax").click(function(){
-			var array=new Array();
-			var wordfre=new Array();
-			brushdata.forEach(function(value){
-				value.nouns.forEach(function(key){
-					if(wordfre[key]==undefined){
-						wordfre[key]=1;				
-					}else{
-						wordfre[key]=wordfre[key]+1;
-					}
-				})
-			});
-			var wordarray=[];		
-			for(var key in wordfre){
-				var obj={};
-				obj.text=key;
-				obj.weight=wordfre[key];
-				wordarray.push(obj);
+	
+	// When DOM is ready, select the container element and call the jQCloud method, passing the array of words as the first argument.
+	//$("#ajax").click(function(){
+	var array=new Array();
+	var wordfre=new Array();
+	brushdata.forEach(function(value){
+		value.nouns.forEach(function(key){
+			if(wordfre[key]==undefined){
+				wordfre[key]=1;				
+			}else{
+				wordfre[key]=wordfre[key]+1;
 			}
-			wordarray.sort(function(a,b){
-				return a.weight<b.weight;
-			});
-			console.log("empty");
-			$("#wordcloud").empty();
-			console.log("jqcloud");
-			$("#wordcloud").jQCloud(wordarray.slice(0,70));
-			console.log("endjqcloud");
-		//});
+		})
+	});
+	
+	wordsSentimentArray.length=0;
+	
+	function checknum(value) {
+		var Regx = /^[A-Za-z -]*$/;
+		if (Regx.test(value)) {
+			return true;
+		}
+		else {
+			return false;
+		}
+    }
+	
+	var wordarray=[];		
+	for(var key in wordfre){
+		//console.log(typeof(key));
+		if(checknum(key)==false){
+			//console.log(key);
+			continue;
+		}
+		var obj={};
+		obj.text=key;
+		obj.weight=wordfre[key];
+		wordarray.push(obj);
+	}
+	wordarray.sort(function(a,b){
+		return a.weight<b.weight;
+	});
+	
+	var electedArray=wordarray.slice(0,70);
+	
+	var color1=["#006837","#1A9850","#66BD63","#A6D96A","#D9EF8B","#FFFFBF","#FEE08B","#FDAE61","#F46D43","#D73027","#A50026"]
+	//var colormiddle="#f0eff4";
+	var colormiddle="#D8Daeb";
+	
+	console.log(d3.range(11));
+	var colorScale = d3.scale.linear() // <-A
+        .domain(d3.range(11))
+        .range(color1);
+	
+	electedArray.forEach(function(value){
+		var sumWordSentiment=0.0;
+		var cc=0;
+		var sentiArray=[];
+		//begin to calculate the sentiment of everword
+		$("."+value.text).each(function(index){
+			
+			var sentiment=$(this).parent().attr("sentiment");
+			var numOfsen=parseFloat(sentiment.slice(1,sentiment.indexOf(',')));
+			if(Math.abs(numOfsen-0.0)>0.0001){
+				cc=cc+1;
+				sumWordSentiment=sumWordSentiment+numOfsen;	
+				sentiArray.push(numOfsen);
+			}
+			//console.log();
+		});
+		var sentimentNum;
+		if(cc>0){
+			sentimentNum=sumWordSentiment/cc;
+		}else{
+			sentimentNum=0;
+		}
+		wordsSentimentArray.push(sentiArray);
+		var ccc=(sentimentNum+1)/(2/11);	
+		value.color=colorScale(parseInt(ccc));
+	})
+	
+	console.log(wordsSentimentArray);
+	
+	$("#wordcloud").empty();
+	//console.log("jqcloud");
+	$("#wordcloud").jQCloud(electedArray);
+	//console.log("endjqcloud");
+	
+	$("#wordcloud> span").click(function(){ 
+		var words=[];
+		var index;
+		var clickWord=$(this).text();
+		var r;
 		
-     });
+		//get the every span elements info
+		var spans=$("#wordcloud> span");
+		
+		spans.each(function(i){
+			var sword={};
+			sword.word=$(this).text();
+			
+			sword.top=parseInt($(this).css("top"));
+			sword.left=parseInt($(this).css("left"));
+			sword.width=parseInt($(this).css("width"));
+			sword.height=parseInt($(this).css("height"));
+			sword.link=this;
+			
+			if(clickWord==sword.word){
+				index=i;
+				r=sword.width;
+			}
+			words.push(sword);
+		});
+		
+		var replaceWords=function(){
+			var wheight=$("#wordcloud").css("height");
+			var wwidth=$("#wordcloud").css("width");
+			console.log(wheight);
+				//the function to judge two common element
+			var overlapping = function(a, b) { //两个普通元素的判断
+				var cx1=a.left+a.width/2; //center  x of a
+				var cx2=b.left+b.width/2; //center x of b
+				var cy1=a.top+a.height/2;
+				var cy2=b.top+b.height/2;
+				var sx,sy;
+				
+				if(cx2>cx1){ //b in the right of a 
+					sx=1;
+				}else{
+					sx=-1;
+				}
+				
+				if(cy2>cy1){ //b in the botton of a 
+					sy=1;
+				}else{
+					sy=-1;
+				}
+				
+				//if overlapping
+				var dx=2*Math.abs(cx1-cx2)-a.width-b.width;
+				if(dx<0){
+					var dy=2*Math.abs(cy1-cy2)-a.height-b.height;
+					if(dy<0) 
+						return [dx*0.1*sx,dy*0.1*sy];
+				}
+				return [0,0];
+			};
+			
+			//judge otherele with the indexele 
+			var farAway=function(indexele,otherele){
+				var cx=indexele.left+indexele.width/2;
+				var cy=indexele.top+indexele.height/2;
+				
+				var ox=otherele.left+otherele.width/2;
+				var oy=otherele.top+indexele.height/2;
+				
+				var judgepoint={};
+				
+				var sx,sy;
+				
+				if(cx<ox){//otherele in the right
+					judgepoint.x=otherele.left;
+					sx=1;
+				}else{
+					judgepoint.x=otherele.left+otherele.width;
+					sx=-1;
+				}
+				
+				if(cy>oy){ //otherele in the top
+					judgepoint.y=otherele.top+otherele.height;
+					sy=-1;
+				}else{
+					judgepoint.y=otherele.top;
+					sy=1;
+				}
+				var diff=r*r-((judgepoint.x-cx)*(judgepoint.x-cx)+(judgepoint.y-cy)*(judgepoint.y-cy));
+				if(diff>0){//they have the same area
+					var vector=[r-Math.abs(judgepoint.x-cx),r-Math.abs(judgepoint.y-cy)];
+					return [(vector[0]*0.3+2)*sx,(vector[1]*0.3+2)*sy];
+					
+				}else{
+					return [0,0];
+				}
+			}
+			
+			var updateEle=function(word,xy){
+				word.top=word.top+xy[1];
+				word.left=word.left+xy[0];
+				if(word.top<0){
+					word.top=0;
+				}
+				if(word.left<0){
+					word.left=0;
+				}
+				if(word.top+word.height>wheight){
+					word.top=wheight-word.height;
+				}
+				if(word.left+word.width>wwidth){
+					word.left=wwidth-word.width;
+				} 
+				$(word.link).css("top",word.top+"px");
+				$(word.link).css("left",word.left+"px");
+			}
+			
+			for(var i=0;i<words.length;i++){
+				for(var j=i+1;j<words.length;j++){
+					if(i==index){ //words move around clicked word
+						var xy=farAway(words[i],words[j]);
+						if(xy[0]==0&&xy[1]==0){
+							continue;
+						}
+						updateEle(words[j],xy)
+						
+					}else if(j==index){//words move around clicked word
+						var xy=farAway(words[j],words[i]);
+						if(xy[0]==0&&xy[1]==0){
+							continue;
+						}
+						updateEle(words[i],xy);
+					}else{ //two common word don't over
+						var xy=overlapping(words[i],words[j]);
+						if(xy[0]==0&&xy[1]==0){
+							continue;
+						}
+						updateEle(words[i],xy);
+						xy[0]=-xy[0];
+						xy[1]=-xy[1];
+						updateEle(words[j],xy);
+					}
+				}
+			}	
+		}
+		var time=3000;
+		while(time--){
+			setTimeout(replaceWords,30);
+		}
+		//replaceWords();
+		console.log(words);		
+	});
+
 }
 
 function brushed(){
@@ -487,7 +707,7 @@ function drawTimeline(){
 	var txaxis=d3.svg.axis()
 			   .scale(txscale)
 			   .orient("bottom")
-			   .ticks(16);
+			   .ticks(10);
 	  
 	var ymax=d3.max(dataset.map(function(d){
 		return d.count;
@@ -580,7 +800,7 @@ function drawdense(){
 	var xaxis=d3.svg.axis()
 			   .scale(xscale)
 			   .orient("bottom")
-			   .ticks(16);
+			   .ticks(10);
 			   
 	var yscale=d3.scale.linear()
 				.domain([1,5])
@@ -609,6 +829,9 @@ function drawdense(){
 				return xscale(new Date(d.date))
 			})
 			.y0(function(d){
+				//console.log(d.aveScore);
+				//console.log(d.variance);
+				//console.log(yscale(d.aveScore)+areascale(d.variance));
 				return yscale(d.aveScore)+areascale(d.variance)
 			})
 			.y1(function(d){
@@ -618,7 +841,7 @@ function drawdense(){
 	flow=svg.append("g")
 		.attr("transform","translate(0,0)")
 		.append("path")
-		.attr("d",area(dataset))
+		.attr("d",area(dataset.filter( function(x){return x.aveScore>0;} )))
 		.style("fill",'#99b77b')
 		.attr("clip-path","url(#clip)")
 		.style("stroke-width",0.7);
@@ -626,7 +849,7 @@ function drawdense(){
 	path=svg.append("g")
 		.attr("transform","translate(0,0)")
 		.append("path")
-        .attr("d", strline(dataset))
+        .attr("d", strline(dataset.filter( function(x){return x.aveScore>0;} )))
 		.style("fill","#99b77b")
 		.style("fill","none")
 		.style("stroke-width",1)
@@ -665,7 +888,7 @@ function drawdense(){
 	
 	sbrush.selectAll("rect")
 		.attr("y",0)
-		.attr("height",ybottom);0	
+		.attr("height",ybottom);	
 	//svg.onclick()
 }
 
@@ -678,9 +901,9 @@ function filterdata(){
 	tempdbrush=dbrush.extent();
 	if(tagtime==0){
 		var sbrushdata=brushdata.filter(function(x){ if(x.date>=timebegin&&x.date<=timeend){return x}});
-		wordcloud(sbrushdata);
-		dealreview(sbrushdata);
 		
+		dealreview(sbrushdata);
+		wordcloud(sbrushdata);
 	}
 	
 	
